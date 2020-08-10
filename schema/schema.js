@@ -20,21 +20,13 @@ const CompanyType = new GraphQLObjectType({
         fields:() => ({
           id: { type: GraphQLString },
           name: {type: GraphQLString},
-          discription: { type: GraphQLString},
+          description: { type: GraphQLString},
           users: {
             type: new GraphQLList(UserType),
             resolve(parentValue, args) {
-              return axios.get(`https://graphql-10199.firebaseio.com/users/.json`)
+              return axios.get(`http://localhost:3000/companies/${parentValue.id}/users`)
               .then(response => {
-                //console.log(Object.keys(response.data));
-                //console.log([...response.data]);
-                const userKeys=Object.keys(response.data).filter(userKey => {
-                  //console.log('user : ',userKey);
-                  //console.log('parentValue : ',parentValue);
-                  //console.log('response.data[userKey].companyId: ',response.data[userKey].companyId);
-                  return response.data[userKey].companyId===String(parentValue.id)
-                });
-                return userKeys.map(key=>response.data[key])
+                return response.data;
               })
               .catch(function (error) {
                    console.log(error);
@@ -55,15 +47,9 @@ const UserType = new GraphQLObjectType({
       type: CompanyType,
       resolve(parentValue, args) {
      // console.log(parentValue,' args ',args);
-      return axios.get(`https://graphql-10199.firebaseio.com/companies/.json`)
+      return axios.get(`http://localhost:3000/companies/${parentValue.companyId}`)
       .then(response => {
-        console.log('response data ',response.data);
-        console.log(parentValue);
-        const companyKeys=Object.keys(response.data).filter(Key => {
-
-          return response.data[Key].id===String(parentValue.companyId)
-        });
-        return companyKeys.map(key=>response.data[key])
+        return response.data;
         })
       .catch(function (error) {
            console.log(error);
@@ -82,20 +68,9 @@ const RootQuery = new GraphQLObjectType({
       type: UserType,
       args: { id: { type: GraphQLString } },
         resolve(parentValue, args) {
-          return axios.get(`https://graphql-10199.firebaseio.com/users/.json`)
+          return axios.get(`http://localhost:3000/users/${args.id}`)
           .then(response => {
-            return axios.get(`https://graphql-10199.firebaseio.com/users/.json`)
-            .then(response => {
-              //console.log(Object.keys(response.data));
-              //console.log([...response.data]);
-              const userKeys=Object.keys(response.data).filter(userKey => {
-                //console.log('user : ',userKey);
-                //console.log('parentValue : ',parentValue);
-                //console.log('response.data[userKey].companyId: ',response.data[userKey].companyId);
-                return response.data[userKey].id===String(args.id)
-              });
-              return userKeys.map(key=>response.data[key])
-            })
+            return response.data;
           })
           .catch(function (error) {
                console.log(error);
@@ -106,7 +81,7 @@ const RootQuery = new GraphQLObjectType({
       type: CompanyType,
       args: { id: { type: GraphQLString } },
         resolve(parentValue, args) {
-          return axios.get(`https://graphql-10199.firebaseio.com/companies/.json`)
+          return axios.get(`http://localhost:3000/companies/${args.id}`)
           .then(response => response.data)
           .catch(function (error) {
                console.log(error);
@@ -122,14 +97,14 @@ const mutation = new GraphQLObjectType({
     addUser: {
       type: UserType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLString)},
+        id: { type: GraphQLString},
         firstName: {type: GraphQLNonNull(GraphQLString)},
         age: { type: GraphQLNonNull(GraphQLInt)},
         companyId: { type: GraphQLNonNull(GraphQLString)}
       },
       resolve(parentValue, args) {
           return   axios
-          .post(`https://graphql-10199.firebaseio.com/users/.json`, args)
+          .post(`http://localhost:3000/users/`, args)
           .then(response => response.data)
           .catch(function (error) {
                console.log(error);
@@ -141,18 +116,51 @@ const mutation = new GraphQLObjectType({
       type: CompanyType,
       args: {
         id: { type: new GraphQLNonNull(GraphQLString)},
-        name: {type: GraphQLNonNull(GraphQLString)},
-        description: { type: GraphQLNonNull(GraphQLString)},
+        name: {type: new GraphQLNonNull(GraphQLString)},
+        description: { type: new GraphQLNonNull(GraphQLString)},
       },
       resolve(parentValue, args) {
           return   axios
-          .post(`https://graphql-10199.firebaseio.com/companies.json`, args)
+          .post(`http://localhost:3000/companies/`, args)
           .then(response => response.data)
           .catch(function (error) {
                console.log(error);
              });
         }
-    }
+    },
+    deleteUser: {
+      type: UserType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLString)},
+      },
+      resolve(parentValue, args) {
+          return   axios
+          .delete(`http://localhost:3000/users/${args.id}`)
+          .then(response => response.data)
+          .catch(function (error) {
+               console.log(error);
+             });
+        }
+    },
+    editUser: {
+      type: UserType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLString)},
+        firstName: {type: GraphQLString},
+        age: { type: GraphQLInt},
+        companyId: { type: GraphQLString}
+      },
+      resolve(parentValue, args) {
+          return   axios
+          .patch(`http://localhost:3000/users/${args.id}`,Object.fromEntries(Object.entries(args).filter(arg=>arg!==null)))
+          .then(response => {
+            console.log(response.data);
+            return response.data})
+          .catch(function (error) {
+               console.log(error);
+             });
+        }
+    },
   }
 }
 )
